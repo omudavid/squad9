@@ -5,9 +5,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:week12/database_provider.dart';
 import 'package:week12/model/PokemonResponse.dart';
+import 'package:week12/providers/student_provider.dart';
+import 'package:week12/providers/theme_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -22,33 +25,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    getStudents();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      body: Column(
-        children: [
-          StreamBuilder(
-            stream: numberStream(),
-            builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-              if (snapshot.hasError) {
-                return Text('Error');
-              }
-              if (snapshot.hasData) {
-                numbers.add(snapshot.data);
-                return Text('$numbers');
-              }
-              return Center(child: CircularProgressIndicator());
-            },
-          ),
-          Text('$count')
-        ],
-      ),
-    );
+        appBar: AppBar(),
+        body: Column(
+          children: [
+            Consumer<StudentProvider>(
+              builder: (BuildContext context, value, Widget? child) {
+                return Text(value.list.toString());
+              },
+            ),
+            TextButton(
+                onPressed: () {
+                  Provider.of<StudentProvider>(context, listen: false)
+                      .addToList();
+                },
+                child: Text('tap')),
+            TextButton(
+                onPressed: () {
+                  Provider.of<ThemeProvider>(context, listen: false)
+                      .changeToDark();
+                },
+                child: Text('Dark')),
+            TextButton(
+                onPressed: () {
+                  Provider.of<ThemeProvider>(context, listen: false)
+                      .changeToLight();
+                },
+                child: Text('Light'))
+          ],
+        ));
+  }
+
+  Future<void> addTeacher() async {
+    final teacher = Teacher(1, 'David', 30);
+    DBProvider.db.newTeacher(teacher);
+  }
+
+  Future<void> getTeachers() async {
+    final teachers = await DBProvider.db.getTeachers();
+    for (var teacher in teachers) {
+      print(teacher.toJson());
+    }
   }
 
   Future<void> testSharedPreference() async {

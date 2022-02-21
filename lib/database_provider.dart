@@ -39,15 +39,58 @@ class DBProvider {
       age INTEGER
       )
       ''');
-    },
-        onDowngrade: (db, oldVersion, newVersion) async {},
-        onUpgrade: (db, oldVersion, newVersion) async {},
-        version: 1);
+
+      db.execute('''
+      CREATE TABLE teachers (
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      age INTEGER
+      )
+      ''');
+    }, onDowngrade: (db, oldVersion, newVersion) async {
+      ///Called when version of an incoming or update is lower than the current version number
+    }, onUpgrade: (db, oldVersion, newVersion) async {
+      ///Called when version of an incoming or update is higher than the current version number
+      if (oldVersion == 1) {
+        upgradeToVersion2(db);
+      }
+    }, version: 2);
+  }
+
+  Future<void> upgradeToVersion2(Database db) async {
+    db.execute('''
+      CREATE TABLE teachers (
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      age INTEGER
+      )
+      ''');
   }
 
   Future<int> newStudent(Student student) async {
     final db = await database;
     var res = await db?.insert('students', student.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+
+    return res ?? 1;
+  }
+
+  Future<void> editName(String name, int id) async {
+    final db = await database;
+    final res = await db?.update('students', {'name': name, 'age': 24},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> delete(int id) async {
+    final db = await database;
+    await db?.delete(
+      'students',
+    );
+  }
+
+  Future<int> newTeacher(Teacher teacher) async {
+    final db = await database;
+    var res = await db?.insert('teachers', teacher.toJson(),
         conflictAlgorithm: ConflictAlgorithm.replace);
 
     return res ?? 1;
@@ -60,6 +103,16 @@ class DBProvider {
       return [];
     } else {
       return res!.map((e) => Student.fromJson(e)).toList();
+    }
+  }
+
+  Future<List<Teacher>> getTeachers() async {
+    final db = await database;
+    final res = await db?.query('teachers');
+    if (res?.isEmpty ?? true) {
+      return [];
+    } else {
+      return res!.map((e) => Teacher.fromJson(e)).toList();
     }
   }
 }
@@ -76,6 +129,23 @@ class Student {
   }
 
   Student.fromJson(Map<dynamic, dynamic> json)
+      : id = json['id'],
+        name = json['name'],
+        age = json['age'];
+}
+
+class Teacher {
+  final int id;
+  final String name;
+  final int age;
+
+  Teacher(this.id, this.name, this.age);
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'age': age};
+  }
+
+  Teacher.fromJson(Map<dynamic, dynamic> json)
       : id = json['id'],
         name = json['name'],
         age = json['age'];
